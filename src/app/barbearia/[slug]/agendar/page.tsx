@@ -13,9 +13,9 @@ export default async function AgendarPage({ params, searchParams }: Props) {
 
   // Verifica se está logado
   const { data: { session } } = await supabase.auth.getSession()
-  //if (!session) {
-    //redirect(`/login?next=/barbearia/${params.slug}/agendar`)
-  //}
+  if (!session) {
+    redirect(`/login?next=/barbearia/${params.slug}/agendar`)
+  }
 
   // Busca dados do estabelecimento
   const { data: estabelecimento } = await supabase
