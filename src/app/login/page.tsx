@@ -11,10 +11,13 @@ export default function LoginPage() {
   async function handleLogin() {
     setLoading(true)
     const supabase = createClient()
+
+    const next = new URLSearchParams(window.location.search).get('next') || '/'
+
     await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'http://localhost:3000/auth/callback',
+        emailRedirectTo: `http://localhost:3000/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
     setEnviado(true)

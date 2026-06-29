@@ -11,11 +11,15 @@ export default async function BarbeariePage({ params }: Props) {
 
   const { data: { session } } = await supabase.auth.getSession()
 
-  const { data: estabelecimento } = await supabase
+  const { data: estabelecimento, error } = await supabase
     .from('estabelecimentos')
     .select('*')
     .eq('slug', params.slug)
     .single()
+
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(`Supabase error: ${error.message}`)
+  }
 
   if (!estabelecimento) notFound()
 
