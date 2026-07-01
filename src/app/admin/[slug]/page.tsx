@@ -23,7 +23,7 @@ export default async function AdminPage({ params }: Props) {
   if (!estabelecimento) notFound()
 
   // Verifica se é o dono
-  if (estabelecimento.owner_email !== user.email) {
+  if (estabelecimento.owner_email?.toLowerCase() !== user.email?.toLowerCase()) {
     redirect('/')
   }
 
