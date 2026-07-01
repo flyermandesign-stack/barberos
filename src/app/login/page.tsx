@@ -17,7 +17,7 @@ export default function LoginPage() {
     await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `http://${window.location.host}/auth/callback?next=${encodeURIComponent(next)}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
     setEnviado(true)
