@@ -12,8 +12,8 @@ export default async function AgendarPage({ params, searchParams }: Props) {
   const supabase = createClient()
 
   // Verifica se está logado
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     redirect(`/login?next=/barbearia/${params.slug}/agendar`)
   }
 
@@ -60,7 +60,8 @@ export default async function AgendarPage({ params, searchParams }: Props) {
           servicos={servicos || []}
           barbeiros={barbeiros || []}
           servicoPreSelecionado={searchParams.servico}
-clienteId={session?.user?.id || '7e5485f9-18f2-4992-b625-20499888500e'}        />
+          clienteId={user.id}
+        />
       </div>
     </main>
   )

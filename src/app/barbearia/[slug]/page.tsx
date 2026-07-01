@@ -9,7 +9,7 @@ interface Props {
 export default async function BarbeariePage({ params }: Props) {
   const supabase = createClient()
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { data: estabelecimento, error } = await supabase
     .from('estabelecimentos')
@@ -72,7 +72,7 @@ export default async function BarbeariePage({ params }: Props) {
                 <BotaoAgendar
                   slug={params.slug}
                   servicoId={s.id}
-                  logado={!!session}
+                  logado={!!user}
                 />
               </div>
             </div>

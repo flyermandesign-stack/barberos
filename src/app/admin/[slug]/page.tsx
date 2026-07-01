@@ -10,8 +10,8 @@ export default async function AdminPage({ params }: Props) {
   const supabase = createClient()
 
   // Verifica sessão
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login?next=/admin/' + params.slug)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login?next=/admin/' + params.slug)
 
   // Busca estabelecimento
   const { data: estabelecimento } = await supabase
@@ -23,7 +23,7 @@ export default async function AdminPage({ params }: Props) {
   if (!estabelecimento) notFound()
 
   // Verifica se é o dono
-  if (estabelecimento.owner_email !== session.user.email) {
+  if (estabelecimento.owner_email !== user.email) {
     redirect('/')
   }
 
@@ -79,7 +79,7 @@ export default async function AdminPage({ params }: Props) {
           <span style={{ color: '#252525', margin: '0 0.75rem' }}>|</span>
           <span style={{ fontSize: '0.75rem', letterSpacing: '2px', color: '#5a5550' }}>{estabelecimento.nome}</span>
         </div>
-        <div style={{ fontSize: '0.7rem', color: '#5a5550' }}>Admin · {session.user.email}</div>
+        <div style={{ fontSize: '0.7rem', color: '#5a5550' }}>Admin · {user.email}</div>
       </div>
 
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '1.5rem 2rem' }}>
