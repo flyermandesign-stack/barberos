@@ -80,11 +80,11 @@ export default async function AdminPage({ params }: Props) {
     .limit(10)
 
   function formatHora(iso: string) {
-    return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
   }
 
   function formatData(iso: string) {
-    return new Date(iso).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+    return new Date(iso).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
   }
 
   const totalHoje = agendamentos?.reduce((acc, a) => acc + Number(a.valor_cobrado), 0) || 0
