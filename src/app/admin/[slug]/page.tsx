@@ -27,10 +27,29 @@ export default async function AdminPage({ params }: Props) {
     redirect('/')
   }
 
-  // Busca agendamentos de hoje
-  const hoje = new Date()
-  const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString()
-  const fimHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString()
+  // Calcula o inicio (meia-noite) de um dia no fuso de Brasilia, "diasNoFuturo"
+  // a partir de hoje. O servidor (Vercel) roda em UTC, entao usamos
+  // Intl.DateTimeFormat para descobrir o dia corrente em America/Sao_Paulo
+  // antes de calcular o instante UTC correspondente a meia-noite local
+  // (Brasil nao observa horario de verao desde 2019, entao o offset e -03:00 fixo).
+  function inicioDoDiaBrasilia(data: Date, diasNoFuturo: number) {
+    const [ano, mes, dia] = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+      .format(data)
+      .split('-')
+      .map(Number)
+
+    return new Date(Date.UTC(ano, mes - 1, dia + diasNoFuturo, 3, 0, 0)).toISOString()
+  }
+
+  const agora = new Date()
+  const inicioHoje = inicioDoDiaBrasilia(agora, 0)
+  const fimHoje = inicioDoDiaBrasilia(agora, 1)
+  const fimJanelaProximos = inicioDoDiaBrasilia(agora, 8)
 
   const { data: agendamentos } = await supabase
     .from('agendamentos')
@@ -45,7 +64,7 @@ export default async function AdminPage({ params }: Props) {
     .lt('inicio', fimHoje)
     .order('inicio')
 
-  // Busca próximos agendamentos (próximos 7 dias)
+  // Busca próximos agendamentos (próximos 7 dias, ate 10 itens)
   const proximos = await supabase
     .from('agendamentos')
     .select(`
@@ -56,6 +75,7 @@ export default async function AdminPage({ params }: Props) {
     `)
     .eq('estabelecimento_id', estabelecimento.id)
     .gte('inicio', fimHoje)
+    .lt('inicio', fimJanelaProximos)
     .order('inicio')
     .limit(10)
 
