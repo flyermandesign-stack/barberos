@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { STATUS_ATIVOS } from '@/lib/agendamentos'
 
 interface Servico {
   id: string
@@ -67,7 +68,7 @@ export default function AgendarForm({ slug, estabelecimentoId, servicos, barbeir
       .from('agendamentos')
       .select('inicio, fim')
       .eq('barbeiro_id', barbeiroId)
-      .in('status', ['pendente', 'confirmado'])
+      .in('status', STATUS_ATIVOS)
       .gte('inicio', inicioDia.toISOString())
       .lt('inicio', fimDia.toISOString())
       .then(({ data: rows }) => {

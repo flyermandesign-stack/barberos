@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { notFound } from 'next/navigation'
+import { STATUS_ATIVOS } from '@/lib/agendamentos'
 
 interface Props {
   params: { slug: string }
@@ -60,7 +61,7 @@ export default async function AdminPage({ params }: Props) {
       clientes(nome, telefone, email)
     `)
     .eq('estabelecimento_id', estabelecimento.id)
-    .in('status', ['pendente', 'confirmado'])
+    .in('status', STATUS_ATIVOS)
     .gte('inicio', inicioHoje)
     .lt('inicio', fimHoje)
     .order('inicio')
@@ -75,7 +76,7 @@ export default async function AdminPage({ params }: Props) {
       clientes(nome, telefone, email)
     `)
     .eq('estabelecimento_id', estabelecimento.id)
-    .in('status', ['pendente', 'confirmado'])
+    .in('status', STATUS_ATIVOS)
     .gte('inicio', fimHoje)
     .lt('inicio', fimJanelaProximos)
     .order('inicio')
