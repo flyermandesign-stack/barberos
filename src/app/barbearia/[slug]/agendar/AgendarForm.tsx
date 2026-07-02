@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -35,19 +35,68 @@ export default function AgendarForm({ slug, estabelecimentoId, servicos, barbeir
   const [horario, setHorario] = useState('')
   const [loading, setLoading] = useState(false)
   const [sucesso, setSucesso] = useState(false)
+  const [ocupados, setOcupados] = useState<{ inicio: Date; fim: Date }[]>([])
+  const [carregandoHorarios, setCarregandoHorarios] = useState(false)
+  const [erro, setErro] = useState('')
 
   const servico = servicos.find(s => s.id === servicoId)
 
-  // Gera horários disponíveis das 08:00 às 18:00
-  const horarios = []
+  // Todos os horários possíveis, das 08:00 às 18:00
+  const todosHorarios = []
   for (let h = 8; h < 18; h++) {
-    horarios.push(`${String(h).padStart(2, '0')}:00`)
-    horarios.push(`${String(h).padStart(2, '0')}:30`)
+    todosHorarios.push(`${String(h).padStart(2, '0')}:00`)
+    todosHorarios.push(`${String(h).padStart(2, '0')}:30`)
   }
+
+  // Busca os agendamentos ativos do barbeiro nesse dia para descobrir
+  // quais horários já estão ocupados.
+  useEffect(() => {
+    if (!barbeiroId || !data) {
+      setOcupados([])
+      return
+    }
+
+    let cancelado = false
+    setCarregandoHorarios(true)
+
+    const inicioDia = new Date(`${data}T00:00:00`)
+    const fimDia = new Date(inicioDia.getTime() + 24 * 60 * 60 * 1000)
+
+    const supabase = createClient()
+    supabase
+      .from('agendamentos')
+      .select('inicio, fim')
+      .eq('barbeiro_id', barbeiroId)
+      .in('status', ['pendente', 'confirmado'])
+      .gte('inicio', inicioDia.toISOString())
+      .lt('inicio', fimDia.toISOString())
+      .then(({ data: rows }) => {
+        if (cancelado) return
+        setOcupados((rows || []).map(r => ({ inicio: new Date(r.inicio), fim: new Date(r.fim) })))
+        setCarregandoHorarios(false)
+      })
+
+    return () => { cancelado = true }
+  }, [barbeiroId, data])
+
+  // Reseta o horário escolhido se o barbeiro ou a data mudarem, para não
+  // deixar selecionado um horário que já não é mais válido.
+  useEffect(() => {
+    setHorario('')
+  }, [barbeiroId, data])
+
+  const duracaoMin = servico?.duracao_min ?? 30
+
+  const horarios = todosHorarios.filter(h => {
+    const inicioCandidato = new Date(`${data}T${h}:00`)
+    const fimCandidato = new Date(inicioCandidato.getTime() + duracaoMin * 60000)
+    return !ocupados.some(o => inicioCandidato < o.fim && fimCandidato > o.inicio)
+  })
 
   async function confirmar() {
     if (!servicoId || !barbeiroId || !data || !horario || !servico) return
     setLoading(true)
+    setErro('')
 
     const inicio = new Date(`${data}T${horario}:00`)
     const fim = new Date(inicio.getTime() + servico.duracao_min * 60000)
@@ -65,7 +114,18 @@ export default function AgendarForm({ slug, estabelecimentoId, servicos, barbeir
     })
 
     setLoading(false)
-    if (!error) setSucesso(true)
+    if (!error) {
+      setSucesso(true)
+      return
+    }
+
+    if (error.code === '23P01') {
+      setErro('Esse horário acabou de ser reservado por outra pessoa. Escolha outro horário.')
+      setOcupados(prev => [...prev, { inicio, fim }])
+      setHorario('')
+    } else {
+      setErro('Não foi possível confirmar o agendamento. Tente novamente.')
+    }
   }
 
   if (sucesso) {
@@ -143,18 +203,30 @@ export default function AgendarForm({ slug, estabelecimentoId, servicos, barbeir
       </div>
 
       {/* HORÁRIO */}
-      {data && (
+      {data && barbeiroId && (
         <div>
           <div style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '3px', textTransform: 'uppercase', color: '#b4913c', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             Horário <span style={{ flex: 1, height: '1px', background: '#252525', display: 'inline-block' }}></span>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {horarios.map(h => (
-              <div key={h} onClick={() => setHorario(h)} style={{ padding: '0.45rem 0.8rem', borderRadius: '6px', border: `1px solid ${horario === h ? '#b4913c' : '#252525'}`, background: horario === h ? 'rgba(180,145,60,0.06)' : '#111', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: horario === h ? '#b4913c' : '#ede8e0' }}>
-                {h}
-              </div>
-            ))}
-          </div>
+          {carregandoHorarios ? (
+            <div style={{ color: '#5a5550', fontSize: '0.75rem' }}>Carregando horários...</div>
+          ) : horarios.length === 0 ? (
+            <div style={{ color: '#5a5550', fontSize: '0.75rem' }}>Nenhum horário disponível para esse barbeiro nessa data.</div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {horarios.map(h => (
+                <div key={h} onClick={() => setHorario(h)} style={{ padding: '0.45rem 0.8rem', borderRadius: '6px', border: `1px solid ${horario === h ? '#b4913c' : '#252525'}`, background: horario === h ? 'rgba(180,145,60,0.06)' : '#111', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: horario === h ? '#b4913c' : '#ede8e0' }}>
+                  {h}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {erro && (
+        <div style={{ color: '#c0392b', fontSize: '0.75rem', background: 'rgba(192,57,43,0.08)', border: '1px solid rgba(192,57,43,0.3)', borderRadius: '8px', padding: '0.6rem 0.8rem' }}>
+          {erro}
         </div>
       )}
 
